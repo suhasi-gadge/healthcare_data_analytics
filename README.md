@@ -16,7 +16,7 @@ The SQL queries used to inspect and clean the data for this analysis can be foun
 
 Targeted SQL queries regarding various business questions can be found here [[Business Analysis Queries]](sql/analysis/03_analysis_queries.sql).
 
-An interactive Power BI dashboard used to report and explore these trends can be found here [link].
+An interactive Power BI dashboard used to report and explore these trends can be downloaded here [[Healthcare Data Analytics Dashboard]](powerbi/Healthcare%20Data%20Analytics%20Dashboard.pbix). A PDF export of the dashboard is also available here [[Dashboard PDF Export]](powerbi/Healthcare%20Data%20Analytics%20Dashboard.pdf).
 
 
 
@@ -67,8 +67,7 @@ Prior to beginning the analysis, a variety of checks were conducted for quality 
 
 Harbor Point's clinical data reveals that **70.6% of the patient population** carries at least one chronic condition, with diabetes, hypertension, and obesity forming the dominant disease burden triad. The top 10% of patients by encounter frequency consume **38.9% of all encounters and 38.9% of total system costs** — averaging 177 encounters per patient versus the population average of 46 — signaling that a relatively small cohort drives outsized resource demand. Across 53,346 encounters generating $6.87M in total claims, the system-wide payer coverage rate sits at just **48.2%**, meaning over half of care costs are absorbed as out-of-pocket patient burden or unreimbursed charges. The uninsured segment alone — 693 patients representing the single largest payer category — accounts for **$1.31M in entirely unreimbursed care**. Meanwhile, payer reimbursement performance varies dramatically, from Anthem's 76.7% coverage rate down to Dual Eligible's 33.2%, creating clear negotiation opportunities. These findings point to targeted interventions in chronic disease care coordination, ED diversion for manageable conditions, and strategic payer contract renegotiation.
 
-[Visualization — snapshot of the Power BI executive summary dashboard page]
-
+![Healthcare Analytics Overview](images/executive_summary.png)
 
 
 # Insights Deep Dive
@@ -181,25 +180,17 @@ healthcare-analytics-project/
 │   │   ├── imaging_studies.csv                 # 855 imaging records
 │   │   └── supplies.csv                        # Empty (excluded from analysis)
 │   │
-│   └── processed/                              # Analysis outputs & Power BI-ready star schema
-│       ├── dim_date.csv                        # Calendar dimension (2000–2020, 7,671 rows)
-│       ├── dim_patient.csv                     # Patient dimension with age groups & coverage
-│       ├── dim_payer.csv                       # Payer dimension with type classification
-│       ├── dim_organization.csv                # Facility dimension with geo coordinates
-│       ├── dim_provider.csv                    # Provider dimension with specialty
-│       ├── dim_encounter_class.csv             # Encounter type lookup with sort order
-│       ├── fact_encounters.csv                 # Central fact table — encounters with costs, LOS
-│       ├── fact_conditions.csv                 # Conditions fact with chronic flag
-│       ├── fact_medications.csv                # Medications fact with costs & dispenses
-│       ├── demographics_summary.csv            # Demographics by age group, gender, race
+│   └── processed/                              # Analysis outputs & Power BI-ready summaries
 │       ├── county_health_summary.csv           # County-level health metrics
-│       ├── utilization_monthly.csv             # Monthly encounter volume by class
-│       ├── patient_utilization.csv             # Per-patient utilization metrics
-│       ├── organization_performance.csv        # Facility-level performance stats
+│       ├── demographics_summary.csv            # Demographics by age group, gender, race
 │       ├── financial_yearly_trends.csv         # YoY cost and coverage trends
-│       ├── payer_performance_detail.csv        # Payer coverage rates & comparisons
+│       ├── organization_performance.csv        # Facility-level performance stats
+│       ├── outlier_detection.csv               # Statistical outlier flags for cost analysis
 │       ├── patient_financial_summary.csv       # Per-patient financial burden
-│       └── top_medication_costs.csv            # Top 50 drugs by total cost
+│       ├── patient_utilization.csv             # Per-patient utilization metrics
+│       ├── payer_performance_detail.csv        # Payer coverage rates & comparisons
+│       ├── top_medication_costs.csv            # Top 50 drugs by total cost
+│       └── utilization_monthly.csv             # Monthly encounter volume by class
 │
 ├── sql/
 │   ├── 00_create_schema.sql                    # PostgreSQL DDL — 15 tables, FKs, indexes
@@ -218,9 +209,9 @@ healthcare-analytics-project/
 │       └── 05_cost_financial_analysis.ipynb    # Phase 6 — cost drivers, payer, medication economics
 │
 ├── powerbi/
-│   ├── Phase7_PowerBI_Dashboard_Guide.docx     # Data model, DAX measures, 4-page blueprint
-│   ├── dax_measures.dax                        # Copy-paste-ready DAX measures library
-│   └── healthcare_theme.json                   # Custom Power BI theme (import via View → Themes)
+│   ├── Healthcare Data Analytics Dashboard.pbix  # Interactive Power BI dashboard (4 pages)
+│   ├── Healthcare Data Analytics Dashboard.pdf   # Static PDF export of all dashboard pages
+│   └── healthcare_dashboard_model.dax            # DAX measures library (calculated tables, KPIs, display helpers)
 │
 ├── images/                                     # 53 analysis charts + ERD diagram
 │   ├── erd_healthcare_database.png             # Entity Relationship Diagram
@@ -231,5 +222,6 @@ healthcare-analytics-project/
 │   └── ...                                     # 49 additional analysis charts (02–53)
 │
 └── docs/
-    └── data_dictionary.md                      # Field-level data dictionary
+    ├── data_dictionary.md                      # Field-level data dictionary
+    └── domain_knowledge.docx                   # Healthcare domain terminology and concepts guide
 ```

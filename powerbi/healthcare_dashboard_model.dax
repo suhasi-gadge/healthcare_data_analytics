@@ -1,0 +1,282 @@
+// ============================================================
+// Healthcare Data Analytics Power BI DAX Pack
+// Project: healthcare-analytics-project
+//
+// Notes:
+// 1) Create DimDate as a calculated table in Modeling > New table.
+// 2) Create calculated columns in the Patients table after merging:
+//       patient_financial_summary LEFT OUTER JOIN patient_utilization on PATIENT
+// 3) Percentage-style source columns such as coverage_rate, oop_pct,
+//    mortality_rate, ed_rate, yoy_change should ideally be corrected in
+//    Power Query (divide by 100 where needed) before using them in visuals.
+// 4) This file assumes the merged patient-level table is named Patients.
+// ============================================================
+
+// ============================================================
+// CALCULATED TABLE
+// ============================================================
+DimDate =
+ADDCOLUMNS (
+    CALENDAR ( DATE ( 1910, 1, 1 ), DATE ( 2025, 12, 31 ) ),
+    "Year", YEAR ( [Date] ),
+    "MonthNo", MONTH ( [Date] ),
+    "MonthName", FORMAT ( [Date], "MMM" ),
+    "YearMonth", FORMAT ( [Date], "YYYY-MM" ),
+    "Quarter", "Q" & FORMAT ( [Date], "Q" )
+)
+
+// ============================================================
+// CALCULATED COLUMNS - Patients
+// ============================================================
+Utilization Band =
+SWITCH (
+    TRUE (),
+    Patients[encounter_count] >= 20, "High Utilizer",
+    Patients[encounter_count] >= 10, "Medium Utilizer",
+    "Low Utilizer"
+)
+
+Utilization Band Sort =
+SWITCH (
+    Patients[Utilization Band],
+    "Low Utilizer", 1,
+    "Medium Utilizer", 2,
+    "High Utilizer", 3,
+    BLANK ()
+)
+
+OOP Band =
+SWITCH (
+    TRUE (),
+    Patients[total_oop] >= 5000, "5000+",
+    Patients[total_oop] >= 2000, "2000-4999",
+    Patients[total_oop] >= 500, "500-1999",
+    "0-499"
+)
+
+OOP Band Sort =
+SWITCH (
+    Patients[OOP Band],
+    "0-499", 1,
+    "500-1999", 2,
+    "2000-4999", 3,
+    "5000+", 4,
+    BLANK ()
+)
+
+// Optional if you want a simplified patient risk/cost segment
+Catastrophic Flag Label =
+IF ( Patients[IS_CATASTROPHIC] = TRUE (), "Catastrophic", "Non-Catastrophic" )
+
+// ============================================================
+// CORE KPI MEASURES
+// ============================================================
+Total Patients =
+DISTINCTCOUNT ( Patients[PATIENT] )
+
+Total Encounters =
+SUM ( utilization_monthly[encounters] )
+
+Total Cost =
+SUM ( financial_yearly_trends[total_cost] )
+
+Total Covered =
+SUM ( financial_yearly_trends[total_covered] )
+
+Total OOP =
+SUM ( financial_yearly_trends[total_oop] )
+
+Coverage Rate % =
+DIVIDE ( [Total Covered], [Total Cost] )
+
+Avg Cost per Encounter =
+DIVIDE ( [Total Cost], [Total Encounters] )
+
+Latest YoY % =
+VAR LatestYear =
+    MAX ( financial_yearly_trends[YEAR] )
+RETURN
+    DIVIDE (
+        CALCULATE (
+            MAX ( financial_yearly_trends[yoy_change] ),
+            financial_yearly_trends[YEAR] = LatestYear
+        ),
+        100
+    )
+
+Catastrophic Patients =
+CALCULATE (
+    COUNTROWS ( Patients ),
+    Patients[IS_CATASTROPHIC] = TRUE ()
+)
+
+Catastrophic Patient % =
+DIVIDE ( [Catastrophic Patients], [Total Patients] )
+
+Avg Encounters per Patient =
+AVERAGE ( Patients[encounter_count] )
+
+Uninsured Patients =
+CALCULATE (
+    SUM ( payer_performance_detail[unique_patients] ),
+    payer_performance_detail[NAME] = "NO_INSURANCE"
+)
+
+Avg OOP per Patient =
+AVERAGE ( Patients[total_oop] )
+
+Patients by OOP Band =
+DISTINCTCOUNT ( Patients[PATIENT] )
+
+// ============================================================
+// EXECUTIVE / TREND MEASURES
+// ============================================================
+Total Unique Patients (Yearly Trends) =
+SUM ( financial_yearly_trends[unique_patients] )
+
+Cost per Patient =
+DIVIDE ( [Total Cost], [Total Patients] )
+
+Total Monthly Utilization Cost =
+SUM ( utilization_monthly[total_cost] )
+
+Avg Monthly Utilization Cost =
+AVERAGE ( utilization_monthly[avg_cost] )
+
+Avg LOS Hours =
+AVERAGE ( utilization_monthly[avg_los_hrs] )
+
+// ============================================================
+// PAYER PERFORMANCE MEASURES
+// ============================================================
+Payer Total Billed =
+SUM ( payer_performance_detail[total_billed] )
+
+Payer Total Covered =
+SUM ( payer_performance_detail[total_covered] )
+
+Payer Avg Cost =
+AVERAGE ( payer_performance_detail[avg_cost] )
+
+Payer Avg OOP =
+AVERAGE ( payer_performance_detail[avg_oop] )
+
+Payer Coverage Rate % =
+DIVIDE ( [Payer Total Covered], [Payer Total Billed] )
+
+Payer Cost per Patient =
+AVERAGE ( payer_performance_detail[cost_per_patient] )
+
+Payer ED Visits =
+SUM ( payer_performance_detail[ed_visits] )
+
+Payer ED Rate % =
+DIVIDE ( AVERAGE ( payer_performance_detail[ed_rate] ), 100 )
+
+// ============================================================
+// ORGANIZATION / OPERATIONS MEASURES
+// ============================================================
+Organization Encounters =
+SUM ( organization_performance[encounters] )
+
+Organization Patients =
+SUM ( organization_performance[unique_patients] )
+
+Organization Revenue =
+SUM ( organization_performance[total_revenue] )
+
+Organization Avg Cost =
+AVERAGE ( organization_performance[avg_cost] )
+
+Organization ED Visits =
+SUM ( organization_performance[ed_visits] )
+
+Organization ED Rate % =
+DIVIDE ( AVERAGE ( organization_performance[ed_rate] ), 100 )
+
+// ============================================================
+// PATIENT-LEVEL ANALYTICS MEASURES
+// ============================================================
+Patient Total Billed =
+SUM ( Patients[total_billed] )
+
+Patient Total Covered =
+SUM ( Patients[total_covered] )
+
+Patient Total OOP =
+SUM ( Patients[total_oop] )
+
+Avg Patient Billed =
+AVERAGE ( Patients[total_billed] )
+
+Avg Patient Covered =
+AVERAGE ( Patients[total_covered] )
+
+Avg Patient OOP =
+AVERAGE ( Patients[total_oop] )
+
+Avg ED Visits per Patient =
+AVERAGE ( Patients[ed_visits] )
+
+Avg Inpatient Visits per Patient =
+AVERAGE ( Patients[inpatient_visits] )
+
+Patient OOP % =
+DIVIDE ( [Patient Total OOP], [Patient Total Billed] )
+
+High Utilizer Patients =
+CALCULATE (
+    DISTINCTCOUNT ( Patients[PATIENT] ),
+    Patients[Utilization Band] = "High Utilizer"
+)
+
+High Utilizer % =
+DIVIDE ( [High Utilizer Patients], [Total Patients] )
+
+// ============================================================
+// MEDICATION COST MEASURES
+// ============================================================
+Medication Total Cost =
+SUM ( top_medication_costs[total_cost] )
+
+Medication Prescriptions =
+SUM ( top_medication_costs[prescriptions] )
+
+Medication Unique Patients =
+SUM ( top_medication_costs[unique_patients] )
+
+Medication Avg Cost =
+AVERAGE ( top_medication_costs[avg_cost] )
+
+Medication Avg Payer Covered =
+AVERAGE ( top_medication_costs[avg_payer_covered] )
+
+// ============================================================
+// DEMOGRAPHIC / GEOGRAPHIC SUPPORT MEASURES
+// ============================================================
+Demographic Patients =
+SUM ( demographics_summary[patient_count] )
+
+Demographic Mortality Rate % =
+DIVIDE ( AVERAGE ( demographics_summary[mortality_rate] ), 100 )
+
+County Patients =
+SUM ( county_health_summary[patients] )
+
+County Mortality Rate % =
+DIVIDE ( AVERAGE ( county_health_summary[mortality_rate] ), 100 )
+
+County Coverage Ratio =
+AVERAGE ( county_health_summary[coverage_ratio] )
+
+// ============================================================
+// OPTIONAL DISPLAY HELPERS
+// ============================================================
+Selected Year =
+SELECTEDVALUE ( DimDate[Year], "All Years" )
+
+Selected Payer =
+SELECTEDVALUE ( payer_performance_detail[NAME], "All Payers" )
+
+Selected OOP Band =
+SELECTEDVALUE ( Patients[OOP Band], "All OOP Bands" )
